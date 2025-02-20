@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Custom Mood Board</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; }
+        .profile { display: flex; align-items: center; justify-content: center; flex-direction: column; margin-top: 20px; }
+        .profile img { width: 100px; height: 100px; border-radius: 50%; cursor: pointer; }
+        .profile h2 { margin: 10px 0; cursor: pointer; }
+        .stats { display: flex; gap: 20px; }
+        .upload-container { margin: 20px; }
+        .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; padding: 10px; }
+        .grid img { width: 100%; cursor: pointer; border-radius: 5px; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.8); justify-content: center; align-items: center; }
+        .modal-content { background: white; padding: 20px; text-align: left; position: relative; }
+        .close { position: absolute; top: 10px; right: 10px; cursor: pointer; font-size: 20px; }
+    </style>
+</head>
+<body>
+    <div class="profile">
+        <img src="default-avatar.png" alt="Profile Picture" id="profilePic">
+        <input type="file" id="profilePicInput" style="display: none;" accept="image/*">
+        <h2 contenteditable="true" id="username">Your Username</h2>
+        <div class="stats">
+            <span><b id="postCount">0</b> Posts</span>
+            <span><b id="followers">3.5M</b> Followers</span>
+            <span><b id="following">0</b> Following</span>
+        </div>
+    </div>
+    
+    <div class="upload-container">
+        <input type="file" id="imageInput" accept="image/*">
+        <input type="text" id="descInput" placeholder="Enter description">
+        <button onclick="uploadImage()">Upload</button>
+    </div>
+
+    <div class="grid" id="imageGrid"></div>
+
+    <div class="modal" id="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <img id="modal-img" src="" alt="Selected Post" style="width:100%">
+            <p id="modal-desc"></p>
+        </div>
+    </div>
+
+    <script>
+        // Upload and display a new profile picture
+        document.getElementById("profilePic").addEventListener("click", function() {
+            document.getElementById("profilePicInput").click();
+        });
+
+        document.getElementById("profilePicInput").addEventListener("change", function() {
+            const file = this.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById("profilePic").src = e.target.result;
+                    saveProfileToLocalStorage(e.target.result, document.getElementById("username").innerText);
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Save changes to username
+        document.getElementById("username").addEventListener("input", function() {
+            const profilePicSrc = document.getElementById("profilePic").src;
+            saveProfileToLocalStorage(profilePicSrc, this.innerText);
+        });
+
+        // Save profile to localStorage
+        function saveProfileToLocalStorage(profilePic, username) {
+            const profileData = { profilePic, username };
+            localStorage.setItem("profileData", JSON.stringify(profileData));
+        }
+
+        // Load profile from localStorage
+        function loadProfileFromLocalStorage() {
+            const profileData = JSON.parse(localStorage.getItem("profileData"));
+            if (profileData) {
+                document.getElementById("profilePic").src = profileData.profilePic;
+                document.getElementById("username").innerText = profileData.username;
+            }
+        }
+
+        // Upload image and add to grid
+        function uploadImage() {
+            const file = document.getElementById('imageInput').files[0];
+            const desc = document.getElementById('descInput').value;
+            if (!file) return alert("Please select an image.");
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const imgData = e.target.result;
+                addImageToGrid(imgData, desc);
+                saveToLocalStorage(imgData, desc);
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function addImageToGrid(imgSrc, description) {
+            const grid = document.getElementById('imageGrid');
+            const imgElement = document.createElement('img');
+            imgElement.src = imgSrc;
+            imgElement.onclick = () => openModal(imgSrc, description);
+            grid.appendChild(imgElement);
+            updatePostCount();
+        }
+
+        function openModal(imgSrc, description) {
+            document.getElementById('modal-img').src = imgSrc;
+            document.getElementById('modal-desc').innerText = description;
+            document.getElementById('modal').style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('modal').style.display = 'none';
+        }
+
+        function saveToLocalStorage(img, desc) {
+            let storedImages = JSON.parse(localStorage.getItem("moodBoard")) || [];
+            storedImages.push({ img, desc });
+            localStorage.setItem("moodBoard", JSON.stringify(storedImages));
+        }
+
+        function loadFromLocalStorage() {
+            let storedImages = JSON.parse(localStorage.getItem("moodBoard")) || [];
+            storedImages.forEach(({ img, desc }) => addImageToGrid(img, desc));
+            updatePostCount();
+        }
+
+        function updatePostCount() {
+            document.getElementById('postCount').innerText = document.getElementById('imageGrid').children.length;
+        }
+
+        window.onload = function() {
+            loadProfileFromLocalStorage();
+            loadFromLocalStorage();
+        };
+    </script>
+</body>
+</html>
